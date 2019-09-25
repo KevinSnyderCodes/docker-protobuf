@@ -48,9 +48,12 @@ RUN cd /protobuf-c && \
         make install DESTDIR=${OUTDIR}
 RUN find ${OUTDIR} -name "*.a" -delete -or -name "*.la" -delete
 
-RUN apk add --no-cache go
-ENV GOPATH=/go \
-        PATH=/go/bin/:$PATH
+FROM golang:alpine as go_builder
+
+ENV PROTOC_GEN_DOC_VERSION=1.1.0 \
+        OUTDIR=/out
+RUN mkdir -p ${OUTDIR}/usr/bin
+RUN apk add --no-cache git curl make
 RUN go get -u -v -ldflags '-w -s' \
         github.com/Masterminds/glide \
         github.com/golang/protobuf/protoc-gen-go \
@@ -60,7 +63,6 @@ RUN go get -u -v -ldflags '-w -s' \
         github.com/gogo/protobuf/protoc-gen-gogofaster \
         github.com/gogo/protobuf/protoc-gen-gogoslick \
         github.com/twitchtv/twirp/protoc-gen-twirp \
-        github.com/chrusty/protoc-gen-jsonschema \
         github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger \
         github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway \
         github.com/johanbrandhorst/protobuf/protoc-gen-gopherjs \
@@ -69,7 +71,8 @@ RUN go get -u -v -ldflags '-w -s' \
         github.com/envoyproxy/protoc-gen-validate \
         moul.io/protoc-gen-gotemplate \
         github.com/micro/protoc-gen-micro \
-        github.com/chrusty/protoc-gen-jsonschema \
+        github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema \
+        && go install github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema \
         && (cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && make build) \
         && git -C "$(go env GOPATH)"/src/github.com/golang/protobuf checkout "v1.2.0" \
         && go install github.com/golang/protobuf/protoc-gen-go \
@@ -142,6 +145,7 @@ RUN mkdir -p ${OUTDIR}/usr/bin && \
 
 FROM znly/upx as packer
 COPY --from=protoc_builder /out/ /out/
+COPY --from=go_builder /out/ /out/
 RUN upx --lzma \
         /out/usr/bin/protoc \
         /out/usr/bin/grpc_* \
