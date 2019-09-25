@@ -145,6 +145,7 @@ RUN mkdir -p ${OUTDIR}/usr/bin && \
 
 FROM znly/upx as packer
 COPY --from=protoc_builder /out/ /out/
+COPY --from=go_builder /out/ /out/
 RUN upx --lzma \
         /out/usr/bin/protoc \
         /out/usr/bin/grpc_* \
