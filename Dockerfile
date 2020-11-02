@@ -53,7 +53,8 @@ FROM golang:alpine as go_builder
 ENV PROTOC_GEN_DOC_VERSION=1.1.0 \
         OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/bin
-RUN apk add --no-cache git curl make
+RUN apk add --no-cache git curl make protoc protobuf-dev
+
 RUN go get -u -v -ldflags '-w -s' \
         github.com/Masterminds/glide \
         github.com/golang/protobuf/protoc-gen-go \
