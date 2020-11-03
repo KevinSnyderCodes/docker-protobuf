@@ -53,7 +53,8 @@ FROM golang:alpine as go_builder
 ENV PROTOC_GEN_DOC_VERSION=1.1.0 \
         OUTDIR=/out
 RUN mkdir -p ${OUTDIR}/usr/bin
-RUN apk add --no-cache git curl make
+RUN apk add --no-cache git curl make protoc protobuf-dev
+
 RUN go get -u -v -ldflags '-w -s' \
         github.com/Masterminds/glide \
         github.com/golang/protobuf/protoc-gen-go \
@@ -63,7 +64,7 @@ RUN go get -u -v -ldflags '-w -s' \
         github.com/gogo/protobuf/protoc-gen-gogofaster \
         github.com/gogo/protobuf/protoc-gen-gogoslick \
         github.com/twitchtv/twirp/protoc-gen-twirp \
-        github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger \
+        github.com/grpc-ecosystem/grpc-gateway/protoc-gen-openapiv2 \
         github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway \
         github.com/johanbrandhorst/protobuf/protoc-gen-gopherjs \
         github.com/ckaznocha/protoc-gen-lint \
@@ -127,8 +128,8 @@ RUN find /protoc-gen-javalite/ -name 'lib*.so*' -exec patchelf --set-rpath /prot
         done
 
 
-FROM rust:1.22.1 as rust_builder
-ENV RUST_PROTOBUF_VERSION=1.4.3 \
+FROM rust:1.31.0 as rust_builder
+ENV RUST_PROTOBUF_VERSION=2.2.0 \
         OUTDIR=/out
 RUN mkdir -p ${OUTDIR}
 RUN apt-get update && \
@@ -136,11 +137,12 @@ RUN apt-get update && \
 RUN rustup target add x86_64-unknown-linux-musl
 RUN mkdir -p /rust-protobuf && \
         curl -L https://github.com/stepancheg/rust-protobuf/archive/v${RUST_PROTOBUF_VERSION}.tar.gz | tar xvz --strip 1 -C /rust-protobuf
-RUN cd /rust-protobuf/protobuf && \
+RUN cd /rust-protobuf/protobuf-codegen && \
         RUSTFLAGS='-C linker=musl-gcc' cargo build --target=x86_64-unknown-linux-musl --release
 RUN mkdir -p ${OUTDIR}/usr/bin && \
         strip /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust && \
         install -c /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust ${OUTDIR}/usr/bin/
+
 
 
 FROM znly/upx as packer
