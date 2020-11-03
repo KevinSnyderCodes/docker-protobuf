@@ -128,21 +128,21 @@ RUN find /protoc-gen-javalite/ -name 'lib*.so*' -exec patchelf --set-rpath /prot
         done
 
 
-# FROM rust:1.47.0 as rust_builder
-# ENV RUST_PROTOBUF_VERSION=2.18.0 \
-#         OUTDIR=/out
-# RUN mkdir -p ${OUTDIR}
-# RUN apt-get update && \
-#         apt-get install -y musl-tools
-# RUN rustup target add x86_64-unknown-linux-musl
-# RUN mkdir -p /rust-protobuf && \
-#         curl -L https://github.com/stepancheg/rust-protobuf/archive/v${RUST_PROTOBUF_VERSION}.tar.gz | tar xvz --strip 1 -C /rust-protobuf
-# RUN cd /rust-protobuf/protobuf && \
-#         RUSTFLAGS='-C linker=musl-gcc' cargo build --target=x86_64-unknown-linux-musl --release
-# RUN mkdir -p ${OUTDIR}/usr/bin && \
-#         ls /rust-protobuf/target/x86_64-unknown-linux-musl/release/build && \
-#         strip /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust && \
-#         install -c /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust ${OUTDIR}/usr/bin/
+FROM rust:1.31.0 as rust_builder
+ENV RUST_PROTOBUF_VERSION=2.2.0 \
+        OUTDIR=/out
+RUN mkdir -p ${OUTDIR}
+RUN apt-get update && \
+        apt-get install -y musl-tools
+RUN rustup target add x86_64-unknown-linux-musl
+RUN mkdir -p /rust-protobuf && \
+        curl -L https://github.com/stepancheg/rust-protobuf/archive/v${RUST_PROTOBUF_VERSION}.tar.gz | tar xvz --strip 1 -C /rust-protobuf
+RUN cd /rust-protobuf/protobuf-codegen && \
+        RUSTFLAGS='-C linker=musl-gcc' cargo build --target=x86_64-unknown-linux-musl --release
+RUN mkdir -p ${OUTDIR}/usr/bin && \
+        strip /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust && \
+        install -c /rust-protobuf/target/x86_64-unknown-linux-musl/release/protoc-gen-rust ${OUTDIR}/usr/bin/
+
 
 
 FROM znly/upx as packer
@@ -156,7 +156,7 @@ RUN upx --lzma \
 FROM alpine:3.7
 RUN apk add --no-cache libstdc++
 COPY --from=packer /out/ /
-# COPY --from=rust_builder /out/ /
+COPY --from=rust_builder /out/ /
 COPY --from=swift_builder /protoc-gen-swift /protoc-gen-swift
 RUN for p in protoc-gen-swift protoc-gen-swiftgrpc; do \
         ln -s /protoc-gen-swift/${p} /usr/bin/${p}; \
