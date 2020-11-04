@@ -75,7 +75,7 @@ RUN go get -u -v -ldflags '-w -s' \
         github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema \
         && go install github.com/chrusty/protoc-gen-jsonschema/cmd/protoc-gen-jsonschema \
         && (cd ${GOPATH}/src/github.com/envoyproxy/protoc-gen-validate && make build) \
-        && git -C "$(go env GOPATH)"/src/github.com/golang/protobuf checkout "v1.2.0" \
+        && git -C "$(go env GOPATH)"/src/github.com/golang/protobuf checkout "v1.4.0" \
         && go install github.com/golang/protobuf/protoc-gen-go \
         && install -c ${GOPATH}/bin/protoc-gen* ${OUTDIR}/usr/bin/
 
